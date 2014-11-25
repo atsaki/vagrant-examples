@@ -1,0 +1,41 @@
+Dotenv.load
+
+Vagrant.configure("2") do |config|
+
+  config.vm.box = "idcfcloud_ubuntu_14.04"
+
+  config.ssh.username         = "root"
+  config.ssh.private_key_path = "#{ENV['VAGRANT_SSH_PRIVATE_KEY']}"
+
+  config.vm.define "salt", primary: true do |salt|
+    salt.vm.provider :cloudstack do |cloudstack, override|
+      cloudstack.name = "salt"
+      cloudstack.pf_ip_address_id = "#{ENV['CLOUDSTACK_PF_IP_ADDRESS_ID']}"
+      cloudstack.pf_public_port   = "5000"
+      override.ssh.port           = "5000"
+      cloudstack.pf_private_port  = "22"
+      cloudstack.keypair          = "#{ENV['CLOUDSTACK_SSH_KEYPAIR']}"
+    end
+
+    salt.vm.provision :shell do |s|
+      s.inline = "curl -L http://bootstrap.saltstack.com | sh -s -- -M"
+    end
+  end
+
+  (1..2).each do |i|
+    config.vm.define "minion#{i}" do |minion|
+      minion.vm.provider :cloudstack do |cloudstack, override|
+        cloudstack.name = "minion#{i}"
+        cloudstack.pf_ip_address_id = "#{ENV['CLOUDSTACK_PF_IP_ADDRESS_ID']}"
+        cloudstack.pf_public_port   = "500#{i}"
+        override.ssh.port           = "500#{i}"
+        cloudstack.pf_private_port  = "22"
+        cloudstack.keypair          = "#{ENV['CLOUDSTACK_SSH_KEYPAIR']}"
+      end
+
+      minion.vm.provision :shell do |s|
+        s.inline = "curl -L http://bootstrap.saltstack.com | sh"
+      end
+    end
+  end
+end
