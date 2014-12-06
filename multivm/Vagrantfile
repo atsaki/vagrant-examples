@@ -1,0 +1,30 @@
+Dotenv.load
+
+Vagrant.configure("2") do |config|
+
+  config.ssh.username         = "#{ENV['VAGRANT_SSH_USERNAME']}"
+  config.ssh.private_key_path = "#{ENV['VAGRANT_SSH_PRIVATE_KEY']}"
+  config.vm.box = "idcfcloud_centos_6.5"
+
+  config.vm.define "vm01", primary: true do |vm01|
+    vm01.vm.provider :cloudstack do |cloudstack, override|
+      cloudstack.name = "vm01"
+      cloudstack.pf_ip_address_id = "#{ENV['CLOUDSTACK_PF_IP_ADDRESS_ID']}"
+      cloudstack.pf_public_port   = "2201"
+      override.ssh.port           = "2201"
+      cloudstack.pf_private_port  = "22"
+      cloudstack.keypair          = "#{ENV['CLOUDSTACK_SSH_KEYPAIR']}"
+    end
+  end
+
+  config.vm.define "vm02" do |vm02|
+    vm02.vm.provider :cloudstack do |cloudstack, override|
+      cloudstack.name = "vm02"
+      cloudstack.pf_ip_address_id = "#{ENV['CLOUDSTACK_PF_IP_ADDRESS_ID']}"
+      cloudstack.pf_public_port   = "2202"
+      override.ssh.port           = "2202"
+      cloudstack.pf_private_port  = "22"
+      cloudstack.keypair          = "#{ENV['CLOUDSTACK_SSH_KEYPAIR']}"
+    end
+  end
+end
