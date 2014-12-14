@@ -32,12 +32,13 @@ Vagrant.configure("2") do |config|
           export GOPATH=/root
 
           go get github.com/docker/swarm
+          cd ~/src/github.com/docker/swarm
+          git reset --hard d891711f8c9de3e8f2c1707f38e00d0ff900bbbe
           go install github.com/docker/swarm
 
-          [ -f /usr/local/bin/docker ] || curl -s -o /usr/local/bin/docker https://master.dockerproject.com/linux/amd64/docker
-          chmod +x /usr/local/bin/docker
-
-          nohup docker -d -H 0.0.0.0:2375 0<&- &>/dev/null &
+          curl -sSL https://get.docker.com/ubuntu/ | sh
+          egrep -q "^DOCKER_OPTS" /etc/default/docker || echo 'DOCKER_OPTS="-H 0.0.0.0:2375"' > /etc/default/docker
+          service docker restart
         EOS
       end
     end
