@@ -2,43 +2,33 @@ Dotenv.load
 
 Vagrant.configure("2") do |config|
 
-  config.vm.box = "idcfcloud_ubuntu_14.04"
+  config.vm.box = "atsaki/idcfcloud_ubuntu_14.04"
 
   config.ssh.username         = "root"
   config.ssh.private_key_path = "#{ENV['VAGRANT_SSH_PRIVATE_KEY']}"
 
-  (1..3).each do |i|
-    config.vm.define "node0#{i}" do |minion|
-      minion.vm.provider :cloudstack do |cloudstack, override|
-        cloudstack.display_name = "node0#{i}"
+  n = 3
+  (1..n).each do |i|
+    config.vm.define "node#{i}" do |node|
+      node.vm.provider :cloudstack do |cloudstack, override|
+        cloudstack.display_name = "node#{i}"
         cloudstack.pf_ip_address_id = "#{ENV['CLOUDSTACK_PF_IP_ADDRESS_ID']}"
-        cloudstack.pf_public_port   = "220#{i}"
-        override.ssh.port           = "220#{i}"
+        cloudstack.pf_public_port   = "#{2200 + i}"
+        override.ssh.port           = "#{2200 + i}"
         cloudstack.pf_private_port  = "22"
         cloudstack.keypair          = "#{ENV['CLOUDSTACK_SSH_KEYPAIR']}"
       end
 
-      minion.vm.provision :shell do |s|
-        s.inline = <<-'EOS'
-          apt-get -y update
-          apt-get install -y git golang aufs-tools cgroup-bin
+      node.vm.provision "docker" do |d|
+        d.pull_images "swarm"
+      end
 
-          grep -q GOPATH ~/.bashrc
-          if [ $? -ne 0 ]
-          then
-            echo "export GOPATH=/root" >> ~/.bashrc
-            echo "export PATH=$PATH:/root/bin" >> ~/.bashrc
-          fi
-          export GOPATH=/root
-
-          go get github.com/docker/swarm
-          cd ~/src/github.com/docker/swarm
-          git reset --hard d891711f8c9de3e8f2c1707f38e00d0ff900bbbe
-          go install github.com/docker/swarm
-
-          curl -sSL https://get.docker.com/ubuntu/ | sh
-          egrep -q "^DOCKER_OPTS" /etc/default/docker || echo 'DOCKER_OPTS="-H 0.0.0.0:2375"' > /etc/default/docker
+      node.vm.provision "shell" do |s|
+        s.inline = <<-EOS
+          echo 'DOCKER_OPTS="-H tcp://0.0.0.0:2375 ${DOCKER_OPTS}"' >> /etc/default/docker
           service docker restart
+
+          echo 'export DOCKER_HOST=tcp://localhost:2375' >> ~/.bashrc
         EOS
       end
     end

@@ -20,13 +20,13 @@ VAGRANT_SSH_USERNAME        = 'root'
 VAGRANT_SSH_PRIVATE_KEY     = 'YOUR_SSH_PRIVATE_KEY_PATH'
 ```
 
-2. boxを作成・登録します
+2. boxを取得します
 
 ```bash
-$ ./prepare_box.sh
+$ vagrant box add atsaki/idcfcloud_ubuntu_14.04
 ```
 
 3. VMを起動します
 
-node01, node02, node03 の3つのVMが起動します。
+node1, node2, node3 の3つのVMが起動します。
 
