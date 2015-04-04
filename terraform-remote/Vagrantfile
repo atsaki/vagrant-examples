@@ -1,0 +1,55 @@
+Vagrant.configure("2") do |config|
+
+  config.vm.box = "atsaki/idcfcloud_ubuntu_14.04"
+
+  config.ssh.username         = "root"
+  config.ssh.private_key_path = "#{ENV['VAGRANT_SSH_PRIVATE_KEY']}"
+
+  config.vm.provider :cloudstack do |cloudstack, override|
+    cloudstack.display_name = "terraform-remote"
+    cloudstack.pf_ip_address_id = "#{ENV['CLOUDSTACK_PF_IP_ADDRESS_ID']}"
+    cloudstack.pf_public_port   = "3022"
+    override.ssh.port           = "3022"
+    cloudstack.pf_private_port  = "22"
+    cloudstack.keypair          = "#{ENV['CLOUDSTACK_SSH_KEYPAIR']}"
+  end
+
+  config.vm.provision "shell" do |shell|
+    shell.inline = <<-EOS
+      UI_DIR=/vagrant/consul-ui
+      DATA_DIR=/vagrant/consul
+      CONSUL_LOG=/vagrant/consul.log
+
+      cd /tmp
+
+      if ! type consul > /dev/null; then
+        curl -sL -o consul.zip https://dl.bintray.com/mitchellh/consul/0.5.0_linux_amd64.zip
+        unzip consul.zip
+        chmod +x consul
+        mv consul /usr/local/bin/consul
+      fi
+
+      if [ ! -d /vagrant/consul-ui ]; then
+        curl -sL -o consul-ui.zip https://dl.bintray.com/mitchellh/consul/0.5.0_web_ui.zip
+        unzip consul-ui.zip
+        mv dist $UI_DIR
+      fi
+
+      if ! type terraform > /dev/null; then
+        curl -sL -o terraform.zip https://dl.bintray.com/mitchellh/terraform/terraform_0.4.0_linux_amd64.zip
+        unzip terraform.zip
+        chmod +x terraform*
+        mv terraform* /usr/local/bin
+      fi
+
+
+      killall consul
+      # rm -frv $DATA_DIR
+
+      nohup consul agent -server \
+                         -bootstrap-expect=1 \
+                         -data-dir=$DATA_DIR \
+                         -ui-dir=$UI_DIR > $CONSUL_LOG &
+    EOS
+  end
+end
